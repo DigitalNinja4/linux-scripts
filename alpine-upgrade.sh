@@ -6,19 +6,25 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-# Pobierz najnowszą wersję Alpine Linux z repozytorium
-echo "Sprawdzanie najnowszej wersji Alpine Linux..."
-NEW_VERSION=$(wget -qO- http://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/latest-releases.yaml | grep -oP '(?<=version: )\d+\.\d+' | sort -V | tail -1)
-
-if [ -z "$NEW_VERSION" ]; then
-  echo "Nie udało się ustalić najnowszej wersji Alpine Linux."
+# Sprawdzenie, czy podano wersję jako argument
+if [ -z "$1" ]; then
+  echo "Nie podano wersji Alpine Linux. Użycie: $0 <wersja>"
   exit 1
 fi
 
-echo "Najnowsza wersja Alpine Linux: $NEW_VERSION"
+# Przypisanie wersji z argumentu
+NEW_VERSION=$1
 
-# Zaktualizuj repozytoria do najnowszej wersji
-echo "Aktualizacja repozytoriów do Alpine Linux $NEW_VERSION..."
+echo "Wybrana wersja Alpine Linux: $NEW_VERSION"
+
+# Sprawdzenie, czy podana wersja jest poprawna
+if ! wget -q --spider http://dl-cdn.alpinelinux.org/alpine/v$NEW_VERSION/main/x86_64/; then
+  echo "Podana wersja Alpine Linux ($NEW_VERSION) nie istnieje lub nie jest dostępna w repozytoriach."
+  exit 1
+fi
+
+# Zaktualizuj repozytoria do podanej wersji
+echo "Aktualizacja repozytoriów do Alpine Linux v$NEW_VERSION..."
 sed -i "s|/v[0-9]\+\.[0-9]\+/|/v$NEW_VERSION/|g" /etc/apk/repositories
 
 # Aktualizuj indeksy pakietów
@@ -43,7 +49,7 @@ fi
 echo "Czyszczenie systemu..."
 apk cache clean
 
-echo "Aktualizacja systemu zakończona pomyślnie."
+echo "Aktualizacja systemu do wersji $NEW_VERSION zakończona pomyślnie."
 
 # Informacja o potrzebie ponownego uruchomienia systemu
 echo "Jeśli jądro zostało zaktualizowane, zaleca się ponowne uruchomienie systemu."
